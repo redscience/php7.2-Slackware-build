@@ -22,9 +22,9 @@
 
 
 PKGNAM=alpine
-VERSION=${VERSION:-2.20}
-ALPINEBUILD=${ALPINEBUILD:-2}
-IMAPDBUILD=${IMAPDBUILD:-2}
+VERSION=${VERSION:-2.21}
+ALPINEBUILD=${ALPINEBUILD:-1}
+IMAPDBUILD=${IMAPDBUILD:-1}
 PINEPGP=${PINEPGP:-0.18.0}
 
 # Automatically determine the architecture we're building on:
@@ -48,16 +48,19 @@ mkdir -p $PKG/etc
 
 if [ "$ARCH" = "i586" ]; then
   SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+  LIBSUFIX=""
 elif [ "$ARCH" = "s390" ]; then
   SLKCFLAGS="-O2"
+  LIBSUFIX=""
 elif [ "$ARCH" = "x86_64" ]; then
   SLKCFLAGS="-O2 -fPIC"
+  LIBSUFIX="64"
 fi
 
 cd $TMP
 rm -rf alpine-${VERSION}
-tar xvf $CWD/alpine-$VERSION.tar.?z* || exit 1
-cd alpine-$VERSION
+tar xvf $CWD/alpine-$VERSION.tar.xz || exit 1
+cd alpine-$VERSION || exit 1
 
 # Make sure ownerships and permissions are sane:
 chown -R root:root .
@@ -71,11 +74,14 @@ zcat $CWD/alpine.manpage.diff.gz | patch -p1 --verbose || exit 1
 
 # Configure:
 CFLAGS="$SLKCFLAGS" \
+LDFLAGS="-L/usr/lib$LIBSUFIX" \
 ./configure \
   --prefix=/usr \
   --mandir=/usr/man \
+  --libdir=/usr/lib$LIBSUFIX \
   --with-ssl-dir=/usr \
   --with-ssl-certs-dir=/etc/ssl/certs \
+  --with-ssl-lib-dir=/usr/lib$LIBSUFIX \
   --with-c-client-target=slx \
   --with-system-pinerc=/etc/pine.conf \
   --with-system-fixed-pinerc=/etc/pine.conf.fixed \
@@ -85,7 +91,7 @@ CFLAGS="$SLKCFLAGS" \
   --without-tcl \
   --program-prefix= \
   --program-suffix= \
-  --build=$ARCH-slackware-linux
+  --build=$ARCH-slackware-linux || exit 1
 
 # Correct paths and programs in tech-notes.txt:
 ( cd doc/tech-notes
@@ -114,7 +120,7 @@ cp -a \
 cd $TMP
 rm -rf pinepgp-$PINEPGP
 tar xvf $CWD/pinepgp-$PINEPGP.tar.gz || exit 1
-cd pinepgp-$PINEPGP
+cd pinepgp-$PINEPGP || exit 1
 zcat $CWD/pinepgp-${PINEPGP}-makefile-sed-fix.diff.gz | patch -p1 --verbose || exit 1
 zcat $CWD/pinepgp.pinegpgp.in.diff.gz | patch -p1 --verbose || exit 1
 chown -R root:root .
@@ -163,6 +169,7 @@ cat $CWD/slack-desc.alpine > $PKG/install/slack-desc
 
 cd $PKG
 /sbin/makepkg -l y -c n $TMP/${PKGNAM}-$VERSION-$ARCH-$ALPINEBUILD.txz
+upgradepkg --reinstall --install-new /tmp/alpine-2.21-$( uname -m )*.txz
 
 # As is customary, now build a package for the included IMAP and
 # POP3 daemons:
@@ -170,7 +177,7 @@ PKG2=/tmp/package-imapd
 cd $TMP
 rm -rf $PKG2
 mkdir -p $PKG2
-cd alpine-$VERSION/imap
+cd alpine-$VERSION/imap || exit 1
 mkdir -p $PKG2/usr/doc/imapd-$VERSION
 cp -a \
   CONTENTS LICENSE.txt NOTICE SUPPORT \
@@ -195,3 +202,4 @@ mkdir -p $PKG2/install
 cat $CWD/slack-desc.imapd > $PKG2/install/slack-desc
 cd $PKG2
 /sbin/makepkg -l y -c n $TMP/imapd-$VERSION-$ARCH-$IMAPDBUILD.txz
+upgradepkg --reinstall --install-new /tmp/imapd-2.21-$( uname -m )*.txz
