@@ -12,6 +12,12 @@ chmod +x ./php7Build.sh
 
 ./php7Build.sh
 
+find /etc -name '*php*' -delete
+upgradepkg --reinstall --install-new /tmp/php-7.2.19-$( uname -m )*.txz
+exit 0
+"
+echo "Instalation Complete!"
+
 Assuming everything happened according to plan (the compile finished without errors), the finished package should be in the directory declared as "OUTPUT" in the SlackBuild script (this defaults to the /tmp directory). Use installpkg to install it; you'll probably want to move it to some other location for safekeeping after it's installed.
 
 Enjoy
