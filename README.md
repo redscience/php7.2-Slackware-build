@@ -2,9 +2,11 @@
 Script to compile php 7.2 on Slackware 14.02
 Installation
 
+cd /tmp
+
 git clone https://github.com/redscience/php7.2-Slackware-build.git
 
-cd php7-SlackBuild
+cd php7.2-Slackware-build
 
 ./php7Build.sh
 
