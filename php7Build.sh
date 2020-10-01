@@ -29,3 +29,8 @@ wget -c https://slackbuilds.org/mirror/slackware/slackware-14.2/source/n/alpine/
 echo ""
 echo "Enter root password!"
 su -c "sh $CWD/php-7.2/php.SlackBuild"
+find /etc -name '*php*' -delete
+upgradepkg --reinstall --install-new /tmp/php-7.2.19-$( uname -m )*.txz
+exit 0
+"
+echo "Instalation Complete!"
