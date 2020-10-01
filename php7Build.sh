@@ -30,7 +30,7 @@ echo ""
 echo "Enter root password!"
 su -c "sh $CWD/php-7.2/php.SlackBuild"
 find /etc -name '*php*' -delete
-upgradepkg --reinstall --install-new /tmp/php-7.2.19-$( uname -m )*.txz
+upgradepkg --reinstall --install-new /tmp/php-*-$( uname -m )*.txz
 exit 0
 "
 echo "Instalation Complete!"
