@@ -28,4 +28,4 @@ wget -c https://downloads.php.net/~davey/php-7.1.0RC1.tar.xz -P $CWD/php/
 wget -c https://slackbuilds.org/mirror/slackware/slackware-14.2/source/n/alpine/alpine-2.20.tar.xz -P $CWD/alpine/
 echo ""
 echo "Enter root password!"
-su -c "sh $CWD/php/php.SlackBuild"
+su -c "sh $CWD/php-7.2/php.SlackBuild"
