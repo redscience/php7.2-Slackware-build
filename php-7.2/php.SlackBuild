@@ -3,8 +3,11 @@
 # Build and package mod_php on Slackware.
 # by:  David Cantrell <david@slackware.com>
 # Modified for PHP 4-5 by volkerdi@slackware.com
-# Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2015, 2017, 2018  Patrick Volkerding, Sebeka, MN, USA
+# Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2015  Patrick Volkerding, Sebeka, MN, USA
 # All rights reserved.
+#
+# Modified for php 7.1.0RC1 by rumbler.soppa@rellcom.com.br
+# Modified for php 7.1.9       by rumbler.soppa@gmail.com 						seg set 11 08:04:02 -04 2017
 #
 # Redistribution and use of this script, with or without modification, is
 # permitted provided that the following conditions are met:
@@ -24,8 +27,8 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-VERSION=${VERSION:-$(echo php-*.tar.xz | rev | cut -f 3- -d . | cut -f 1 -d - | rev)}
-ALPINE=2.20
+VERSION=${VERSION:-$(echo php/php-*.tar.xz | rev | cut -f 3- -d . | cut -f 1 -d - | rev)}
+ALPINE=2.21
 BUILD=${BUILD:-1}
 
 # Automatically determine the architecture we're building on:
@@ -73,7 +76,7 @@ if [ -r $IMAPLIBDIR/lib${LIBDIRSUFFIX}/c-client.a ]; then
   ls -l $IMAPLIBDIR/lib${LIBDIRSUFFIX}/c-client.a
   sleep 5
 else
-  ( cd $CWD/../alpine ; VERSION=${ALPINE} ; ./alpine.SlackBuild || exit 1 ) || exit 1
+  ( cd $CWD/alpine ; ./alpine.SlackBuild || exit 1 ) || exit 1
   ( cd $TMP/alpine-${ALPINE}/imap/c-client
     strip -g c-client.a
     mkdir -p $IMAPLIBDIR/lib${LIBDIRSUFFIX}
@@ -95,8 +98,8 @@ fi
 
 cd $TMP
 rm -rf php-$VERSION
-tar xvf $CWD/php-7.2/php-$VERSION.tar.xz || exit 1
-cd php-$VERSION || exit 1
+tar xvf $CWD/php-7.2/php-$VERSION.tar.?z || exit 1
+cd php-$VERSION
 
 # cleanup:
 find . -name "*.orig" -delete
@@ -104,13 +107,13 @@ find . -name "*.orig" -delete
 # Add missing(?) PEAR modules back:
 if [ -d php-$VERSION/pear/packages ]; then
   ( cd php-$VERSION/pear/packages
-    cp -a $CWD/pear/*.bz2 . 2> /dev/null
+    cp -a $CWD/php/pear/*.bz2 . 2> /dev/null
     bzip2 -d *.bz2 2> /dev/null
   )
 fi
 
 if [ "$ARCH" = "s390" ]; then
-  zcat $CWD/php.configure.s390.diff.gz | patch -p1 || exit
+  zcat $CWD/php/php.configure.s390.diff.gz | patch -p1 || exit
 fi
 
 # Fixup perms/owners:
@@ -127,14 +130,13 @@ find . -name "*.h" -exec chmod 644 {} \;
 find . -name "*.orig" -exec rm {} \;
 
 # Patch ini files:
-zcat $CWD/php.ini-development.diff.gz | patch -p1 --verbose || exit 1
-zcat $CWD/php.ini-development.diff.gz | patch -p1 --verbose php.ini-production || exit 1
-zcat $CWD/php-fpm.conf.diff.gz | patch -p1 --verbose || exit 1
+zcat $CWD/php/php.ini-development.diff.gz | patch -p1 --verbose php.ini-development || exit 1
+zcat $CWD/php/php.ini-development.diff.gz | patch -p1 --verbose php.ini-production || exit 1
 
 # Install the build folder into /usr/lib$LIBDIRSUFFIX/php/build
 # and adapt phpize accordingly:
-sed -i "s|build$|php/build|" scripts/Makefile.frag
-sed -i "s|build\"$|php/build\"|" scripts/phpize.in
+#sed -i "s|build$|php/build|" scripts/Makefile.frag
+#sed -i "s|build\"$|php/build\"|" scripts/phpize.in
 
 # Generic "kitchen sink" configure function, with as many things as possible (and
 # maybe then some ;-) compiled as shared extensions:
@@ -164,7 +166,6 @@ CFLAGS="$SLKCFLAGS" \
   --disable-sigchild \
   --enable-xml \
   --with-libxml-dir=/usr \
-  --with-xmlrpc=shared \
   --enable-simplexml \
   --enable-xmlreader=shared \
   --enable-dom=shared \
@@ -199,7 +200,6 @@ CFLAGS="$SLKCFLAGS" \
   --with-ldap=shared \
   --enable-mbstring=shared \
   --enable-hash \
-  --enable-mysqlnd=shared \
   --with-mysqli=shared,mysqlnd \
   --with-mysql-sock=/var/run/mysql/mysql.sock \
   --with-iodbc=shared,/usr \
@@ -214,6 +214,7 @@ CFLAGS="$SLKCFLAGS" \
   --enable-soap=shared \
   --enable-sockets \
   --with-sqlite3=shared \
+  --with-mssql=shared,/usr \
   --enable-sysvmsg \
   --enable-sysvsem \
   --enable-sysvshm \
@@ -228,7 +229,7 @@ CFLAGS="$SLKCFLAGS" \
   --with-gnu-ld \
   --with-pic \
   --enable-phpdbg \
-  --build=$ARCH-slackware-linux || exit 1
+  --build=$ARCH-slackware-linux
 
 # I am told this option is worse than nothing.  :-)
 #  --enable-safe-mode
@@ -265,19 +266,19 @@ rm -f $PKG/usr/lib${LIBDIRSUFFIX}/php/extensions/*.a
 
 mkdir -p $PKG/usr/doc/php-$VERSION
 cp -a \
-  CODING_STANDARDS CREDITS EXTENSIONS INSTALL LICENSE NEWS README* TODO* UPGRADING* \
+  CODING_STANDARDS CREDITS EXTENSIONS INSTALL LICENSE NEWS README* UPGRADING* \
   sapi/cgi/README.FastCGI \
   $PKG/usr/doc/php-$VERSION
 chown -R root:root $PKG/usr/doc/php-$VERSION
 chmod 644 $PKG/usr/doc/php-$VERSION/UPGRADING*
 
 mkdir -p $PKG/etc/httpd
-cat $CWD/mod_php.conf.example | sed -e "s#lib/httpd#lib${LIBDIRSUFFIX}/httpd#" \
+cat $CWD/php/mod_php.conf.example | sed -e "s#lib/httpd#lib${LIBDIRSUFFIX}/httpd#" \
   > $PKG/etc/httpd/mod_php.conf.example
 chmod 644 $PKG/etc/httpd/*
 chown root:root $PKG/etc/httpd/*
 
-cp -a php.ini-development php.ini-production $PKG/etc
+mv php.ini-development php.ini-production $PKG/etc
 chmod 755 $PKG/etc/php.d $PKG/etc/php-fpm.d $PKG/etc/httpd
 chown root:root $PKG/etc/*
 
@@ -296,8 +297,8 @@ find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
 gzip -9 $PKG/usr/man/man?/*.?
 
 mkdir -p $PKG/install
-zcat $CWD/doinst.sh.gz > $PKG/install/doinst.sh
-cat $CWD/slack-desc > $PKG/install/slack-desc
+zcat $CWD/php/doinst.sh.gz > $PKG/install/doinst.sh
+cat $CWD/php/slack-desc > $PKG/install/slack-desc
 
 #if [ -d "$IMAPLIBDIR" ]; then
 #  ( cd $IMAPLIBDIR && rm -rf * )
