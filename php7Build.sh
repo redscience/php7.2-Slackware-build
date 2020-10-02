@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Build and package mod_php on Slackware 14.02.
-# by:  Hamed Nobakht <hamednobakht.official@gmail.com>
+# by:  ted sun <redscience.official@gmail.com>
 
 # All rights reserved.
 
